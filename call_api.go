@@ -10,13 +10,7 @@ import (
 	"strings"
 	"time"
 )
-/*
-extern char* call_api(char *, char *, char *);
 
-static char* do_call_api(char* a, char* b, char *c) {
-	return call_api(a, b, c);
-
-*/
 func call_post_req(apiName string, concurrentOn string, apiData string, client *http.Client, respo chan<- string, quit <-chan bool) {
 	data := make(map[string]string)
 	data["data"] = apiData
@@ -29,8 +23,8 @@ func call_post_req(apiName string, concurrentOn string, apiData string, client *
 	body, _ := ioutil.ReadAll(resp.Body)
 	var response map[string]interface{}
 	json.Unmarshal([]byte(body), &response)
-	fmt.Println(string(body))
-	fmt.Println(concurrentOn)
+	// fmt.Println(string(body))
+	// fmt.Println(concurrentOn)
 	// respo <- string(body)
 	select{
 	case <-quit:
@@ -46,13 +40,13 @@ func call_api(apiNameC *C.char, stringDataC *C.char, concurrencyOnListC *C.char)
 	apiName := C.GoString(apiNameC)
 	stringData := C.GoString(stringDataC)
 	concurrencyOnString := C.GoString(concurrencyOnListC)
-	fmt.Println(apiName, stringData, concurrencyOnString)
+	// fmt.Println(apiName, stringData, concurrencyOnString)
 	concurrencyOnList := strings.Split(concurrencyOnString, ",")
 	respo := make(chan string, len(concurrencyOnList))
-	quit := make(chan bool)
-	fmt.Println(apiName)
-	fmt.Println(stringData)
-	fmt.Println(concurrencyOnString)
+	quit := make(chan bool, len(concurrencyOnList))
+	// fmt.Println(apiName)
+	// fmt.Println(stringData)
+	// fmt.Println(concurrencyOnString)
 	client := &http.Client{}
 	for _, value := range concurrencyOnList {
 		go call_post_req(apiName, value, stringData, client, respo, quit)
@@ -66,10 +60,12 @@ func call_api(apiNameC *C.char, stringDataC *C.char, concurrencyOnListC *C.char)
 		case s := <-respo:
 			doneStr +=s
 		case <-tick:
+			for i := 0; i < len(concurrencyOnList); i++ {
+				quit <- true
+			} 
 			fmt.Println("Timeout")
 			doneStr += "--Timeout--"
 			flag = false
-			quit <- true
 			break
 		}
 	}
