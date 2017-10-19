@@ -37,8 +37,9 @@ func call_api(apiNameC *C.char, stringDataC *C.char, concurrencyOnListC *C.char)
 	stringData := C.GoString(stringDataC)
 	concurrencyOnString := C.GoString(concurrencyOnListC)
 	concurrencyOnList := strings.Split(concurrencyOnString, ",")
-	respo := make(chan string, len(concurrencyOnList))
-	quit := make(chan bool, len(concurrencyOnList))
+	concurrentOnCount := len(concurrencyOnList)
+	respo := make(chan string, concurrentOnCount)
+	quit := make(chan bool, concurrentOnCount)
 	client := &http.Client{}
 	for _, value := range concurrencyOnList {
 		go call_post_req(apiName, value, stringData, client, respo, quit)
@@ -47,12 +48,12 @@ func call_api(apiNameC *C.char, stringDataC *C.char, concurrencyOnListC *C.char)
 	doneStr := ""
 	tick := time.Tick(10 * time.Second)
 	flag := true
-	for flag {
+	for i := 0; flag && i < concurrentOnCount; i++ {
 		select{
 		case s := <-respo:
 			doneStr +=s
 		case <-tick:
-			for i := 0; i < len(concurrencyOnList); i++ {
+			for i := 0; i < concurrentOnCount; i++ {
 				quit <- true
 			} 
 			fmt.Println("Timeout")
