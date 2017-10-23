@@ -3,13 +3,14 @@
 #include "libcall.h"
 
 static PyObject * call_parallel_api(PyObject *self, PyObject *args, PyObject *keywds) {
-	const char *apiName, *apiData, *concurrentOn;
+	//const char *apiName, *apiData, *concurrentOn;
+	char *apiName, *apiData, *concurrentOn;
 	char  *result;
 	if (!PyArg_ParseTuple(args, "sss", &apiName, &apiData, &concurrentOn))
 		return NULL;
 	result = call_api(apiName, apiData, concurrentOn);
 	printf("%s, %s, %s", apiName, apiData, concurrentOn);
-	char * s = result;
+	//char * s = result;
 	// long length = 0;
 	// while(s){
 	// 	length++;
