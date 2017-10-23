@@ -22,7 +22,7 @@ func call_post_req(apiName string, concurrentOn string, apiData string, client *
 	body, _ := ioutil.ReadAll(resp.Body)
 	var response map[string]interface{}
 	json.Unmarshal([]byte(body), &response)
-	select{
+	select {
 	case <-quit:
 		return
 	case <-time.Tick((1 * time.Millisecond)):
@@ -40,7 +40,7 @@ func call_api(apiNameC *C.char, stringDataC *C.char, concurrencyOnListC *C.char)
 	concurrentOnCount := len(concurrencyOnList)
 	respo := make(chan string, concurrentOnCount)
 	quit := make(chan bool, concurrentOnCount)
-	client := &http.Client{}
+	client := &http.Client{Timeout: time.Second * 10}
 	for _, value := range concurrencyOnList {
 		go call_post_req(apiName, value, stringData, client, respo, quit)
 		//call_post_req(apiName, value, stringData, client, respo)
@@ -49,13 +49,13 @@ func call_api(apiNameC *C.char, stringDataC *C.char, concurrencyOnListC *C.char)
 	tick := time.Tick(10 * time.Second)
 	flag := true
 	for i := 0; flag && i < concurrentOnCount; i++ {
-		select{
+		select {
 		case s := <-respo:
-			doneStr +=s
+			doneStr += s
 		case <-tick:
 			for i := 0; i < concurrentOnCount; i++ {
 				quit <- true
-			} 
+			}
 			fmt.Println("Timeout")
 			doneStr += "--Timeout--"
 			flag = false
