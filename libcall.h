@@ -52,6 +52,8 @@ extern "C" {
 #endif
 
 
+extern char* call_rpc(char* p0, char* p1, char* p2);
+
 extern char* call_api(char* p0, char* p1, char* p2);
 
 #ifdef __cplusplus

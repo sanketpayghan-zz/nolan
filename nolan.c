@@ -2,6 +2,8 @@
 #include<Python.h>
 #include "libcall.h"
 
+const CONNECTION_LIMIT = 35;
+
 static PyObject * call_parallel_api(PyObject *self, PyObject *args, PyObject *keywds) {
 	//const char *apiName, *apiData, *concurrentOn;
 	char *apiName, *apiData, *concurrentOn;
@@ -21,9 +23,30 @@ static PyObject * call_parallel_api(PyObject *self, PyObject *args, PyObject *ke
 	return PyString_FromString(result);
 }
 
+static PyObject * call_parallel_rpc(PyObject *self, PyObject *args, PyObject *keywds) {
+	//const char *apiName, *apiData, *concurrentOn;
+	char *apiName, *apiData, *concurrentOn;
+	char  *result;
+	if (!PyArg_ParseTuple(args, "sss", &apiName, &apiData, &concurrentOn))
+		return NULL;
+	result = call_rpc(apiName, apiData, concurrentOn);
+	printf("%s, %s, %s", apiName, apiData, concurrentOn);
+	//char * s = result;
+	// long length = 0;
+	// while(s){
+	// 	length++;
+	// 	s++;
+	// }
+	//return Py_BuildValue("y#", result, length);
+	// printf("%s\n", result);
+	return PyString_FromString(result);
+}
+
 static PyMethodDef NolanMethods[] = {
 	{"call_parallel_api",  call_parallel_api, METH_VARARGS,
 		"Call apis in parallel."},
+	{"call_parallel_rpc", call_parallel_rpc, METH_VARARGS,
+		"Make rpc requests parallel."},
 	{NULL, NULL, 0, NULL}
 };
 
