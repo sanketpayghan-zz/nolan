@@ -1,0 +1,13 @@
+
+service InterstallerCall {
+    rpc MakeInterstallerCall (InterstallerRequest) returns (InterstallerReply) {}
+}
+
+message InterstallerRequest {
+    required string name = 1;
+}
+
+message InterstallerReply {
+    required string message = 1;
+}
+
