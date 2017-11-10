@@ -17,7 +17,7 @@ import (
 const _TIMEOUT_LIMIT = 60
 
 type RpcCallParams struct {
-	Id string
+	Id   string
 	Data string
 }
 
@@ -81,8 +81,6 @@ func call_grpc_req(apiName string, concurrentOn string, apiData string, client s
 	}
 }
 
-
-
 //export call_rpc
 func call_rpc(apiNameC *C.char, stringDataC *C.char, concurrencyOnListC *C.char) *C.char {
 	apiName := C.GoString(apiNameC)
@@ -98,7 +96,7 @@ func call_rpc(apiNameC *C.char, stringDataC *C.char, concurrencyOnListC *C.char)
 		return C.CString(err.Error())
 	}
 	defer conn.Close()
-	client := service.NewInterstallerCallClient(conn, )
+	client := service.NewInterstallerCallClient(conn)
 	for _, value := range concurrencyOnList {
 		go call_grpc_req(apiName, value, stringData, client, respo, quit)
 	}
@@ -126,7 +124,6 @@ func call_rpc(apiNameC *C.char, stringDataC *C.char, concurrencyOnListC *C.char)
 	return C.CString(doneStr)
 }
 
-
 //export call_rpc_with_data
 func call_rpc_with_data(apiNameC *C.char, stringDataC *C.char) *C.char {
 	apiName := C.GoString(apiNameC)
@@ -146,7 +143,7 @@ func call_rpc_with_data(apiNameC *C.char, stringDataC *C.char) *C.char {
 		return C.CString(err.Error())
 	}
 	defer conn.Close()
-	client := service.NewInterstallerCallClient(conn, )
+	client := service.NewInterstallerCallClient(conn)
 	fmt.Println(params)
 	for _, v := range params {
 		go call_grpc_req(apiName, v.Id, v.Data, client, respo, quit)
@@ -188,6 +185,46 @@ func call_api(apiNameC *C.char, stringDataC *C.char, concurrencyOnListC *C.char)
 	for _, value := range concurrencyOnList {
 		go call_post_req(apiName, value, stringData, client, respo, quit)
 		//call_post_req(apiName, value, stringData, client, respo)
+	}
+	doneStr := ""
+	tick := time.Tick(_TIMEOUT_LIMIT * time.Second)
+	flag := true
+	for i := 0; flag && i < concurrentOnCount; i++ {
+		select {
+		case s := <-respo:
+			doneStr += s
+		case <-tick:
+			for i := 0; i < concurrentOnCount; i++ {
+				quit <- true
+			}
+			fmt.Println("Timeout")
+			doneStr += "--Timeout--"
+			flag = false
+			break
+		}
+	}
+	close(respo)
+	defer close(quit)
+	fmt.Println("GO END")
+	return C.CString(doneStr)
+}
+
+//export call_api_with_data
+func call_api_with_data(apiNameC *C.char, stringDataC *C.char) *C.char {
+	apiName := C.GoString(apiNameC)
+	stringData := C.GoString(stringDataC)
+	dataByte := []byte(stringData)
+	params := make([]RpcCallParams, 0)
+	param_err := json.Unmarshal(dataByte, &params)
+	if param_err != nil {
+		return C.CString(param_err.Error())
+	}
+	concurrentOnCount := len(params)
+	respo := make(chan string, concurrentOnCount)
+	quit := make(chan bool, concurrentOnCount)
+	client := &http.Client{Timeout: time.Second * 10}
+	for _, v := range params {
+		go call_post_req(apiName, v.Id, v.Data, client, respo, quit)
 	}
 	doneStr := ""
 	tick := time.Tick(_TIMEOUT_LIMIT * time.Second)
