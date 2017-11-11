@@ -26,5 +26,12 @@ Following functions can be used for above mentioned functionality:
     
     Respose will be in string format concatenated for all the API requests. (Currently working on it to merge response     instead of simply concating responses of diffrent API calls.
 
+4. `post(url, dumped_data_list)`:
+    - url - URL for post http request.
+    - dumped_data_list - json dump list of parameter dict that will be passed in POST http request.
+
+5. `get(url, dumped_data_list)`:
+    - url - URL for get http request.
+    - dumped_data_list - json dump list of parameter dict that will be passed in GET http request url.
 
 Having trouble with Pages? Check out our [documentation](https://help.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
