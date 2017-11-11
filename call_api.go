@@ -250,11 +250,12 @@ func call_post_req_map(apiName string, concurrentOn string, apiData map[string]s
 	return
 }
 
-//export postCall
-func postCall(apiNameC *C.char, stringDataC *C.char) *C.char {
+//export makeRequest
+func makeRequest(apiNameC *C.char, stringDataC *C.char, methodC *C.char) *C.char {
 	var resArray []string
 	apiName := C.GoString(apiNameC)
 	stringData := C.GoString(stringDataC)
+	method := C.GoString(methodC)
 	dataByte := []byte(stringData)
 	params := make([]ParamsData, 0)
 	param_err := json.Unmarshal(dataByte, &params)
@@ -265,8 +266,14 @@ func postCall(apiNameC *C.char, stringDataC *C.char) *C.char {
 	respo := make(chan string, concurrentOnCount)
 	quit := make(chan bool, concurrentOnCount)
 	client := &http.Client{Timeout: time.Second * 10}
-	for _, v := range params {
-		go api.Post(apiName, v.Data, client, respo, quit)
+	if method == "POST" {
+		for _, v := range params {
+			go api.Post(apiName, v.Data, client, respo, quit)
+		}
+	} else if method == "GET" {
+		for _, v := range params {
+			go api.Get(apiName, v.Data, client, respo, quit)
+		}
 	}
 	tick := time.Tick(_TIMEOUT_LIMIT * time.Second)
 	flag := true

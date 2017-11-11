@@ -67,7 +67,16 @@ static PyObject * post(PyObject *self, PyObject *args, PyObject *keywds) {
 	char  *result;
 	if (!PyArg_ParseTuple(args, "ss", &apiName, &apiData))
 		return NULL;
-	result = postCall(apiName, apiData);
+	result = makeRequest(apiName, apiData, "POST");
+	return PyString_FromString(result);
+}
+
+static PyObject * get(PyObject *self, PyObject *args, PyObject *keywds) {
+	char *apiName, *apiData;
+	char  *result;
+	if (!PyArg_ParseTuple(args, "ss", &apiName, &apiData))
+		return NULL;
+	result = makeRequest(apiName, apiData, "GET");
 	return PyString_FromString(result);
 }
 
@@ -79,6 +88,8 @@ static PyMethodDef NolanMethods[] = {
 	{"parallel_rpc_with_data", parallel_rpc_with_data, METH_VARARGS,
 		"Make parallel rpc requests with data."},
 	{"post", post, METH_VARARGS,
+		"Make parallel post requests with data."},
+	{"get", get, METH_VARARGS,
 		"Make parallel post requests with data."},
 	{NULL, NULL, 0, NULL}
 };
