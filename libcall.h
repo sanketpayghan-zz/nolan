@@ -58,7 +58,7 @@ extern char* call_rpc_with_data(char* p0, char* p1);
 
 extern char* call_api(char* p0, char* p1, char* p2);
 
-extern char* call_api_with_data(char* p0, char* p1);
+extern char* postCall(char* p0, char* p1);
 
 #ifdef __cplusplus
 }

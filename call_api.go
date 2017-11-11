@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"service"
+	"api"
 	"strings"
 	"time"
 )
@@ -19,6 +20,10 @@ const _TIMEOUT_LIMIT = 60
 type RpcCallParams struct {
 	Id   string
 	Data string
+}
+
+type ParamsData struct {
+	Data map[string]string
 }
 
 func call_post_req(apiName string, concurrentOn string, apiData string, client *http.Client, respo chan<- string, quit <-chan bool) {
@@ -209,12 +214,49 @@ func call_api(apiNameC *C.char, stringDataC *C.char, concurrencyOnListC *C.char)
 	return C.CString(doneStr)
 }
 
-//export call_api_with_data
-func call_api_with_data(apiNameC *C.char, stringDataC *C.char) *C.char {
+func call_post_req_map(apiName string, concurrentOn string, apiData map[string]string, client *http.Client, respo chan<- string, quit <-chan bool) {
+	//data := make(map[string]string)
+	//data["data"] = apiData
+	apiData["pk"] = concurrentOn
+	dataByte, err1 := json.Marshal(apiData)
+	if err1 != nil {
+		fmt.Println(err1)
+		return
+	}
+	req, err2 := http.NewRequest("POST", apiName, bytes.NewBuffer(dataByte))
+	if err2 != nil {
+		fmt.Println(err2)
+		return
+	}
+	resp, err3 := client.Do(req)
+	if err3 != nil {
+		fmt.Println(err3)
+		return
+	}
+	defer resp.Body.Close()
+	body, err4 := ioutil.ReadAll(resp.Body)
+	if err4 != nil {
+		fmt.Println(err4)
+		return
+	}
+	var response map[string]interface{}
+	json.Unmarshal([]byte(body), &response)
+	select {
+	case <-quit:
+		return
+	case <-time.Tick((1 * time.Millisecond)):
+		respo <- string(body)
+	}
+	return
+}
+
+//export postCall
+func postCall(apiNameC *C.char, stringDataC *C.char) *C.char {
+	var resArray []string
 	apiName := C.GoString(apiNameC)
 	stringData := C.GoString(stringDataC)
 	dataByte := []byte(stringData)
-	params := make([]RpcCallParams, 0)
+	params := make([]ParamsData, 0)
 	param_err := json.Unmarshal(dataByte, &params)
 	if param_err != nil {
 		return C.CString(param_err.Error())
@@ -224,21 +266,20 @@ func call_api_with_data(apiNameC *C.char, stringDataC *C.char) *C.char {
 	quit := make(chan bool, concurrentOnCount)
 	client := &http.Client{Timeout: time.Second * 10}
 	for _, v := range params {
-		go call_post_req(apiName, v.Id, v.Data, client, respo, quit)
+		go api.Post(apiName, v.Data, client, respo, quit)
 	}
-	doneStr := ""
 	tick := time.Tick(_TIMEOUT_LIMIT * time.Second)
 	flag := true
 	for i := 0; flag && i < concurrentOnCount; i++ {
 		select {
 		case s := <-respo:
-			doneStr += s
+			resArray = append(resArray, s)
 		case <-tick:
 			for i := 0; i < concurrentOnCount; i++ {
 				quit <- true
 			}
 			fmt.Println("Timeout")
-			doneStr += "--Timeout--"
+			resArray = append(resArray, "Timeout")
 			flag = false
 			break
 		}
@@ -246,7 +287,8 @@ func call_api_with_data(apiNameC *C.char, stringDataC *C.char) *C.char {
 	close(respo)
 	defer close(quit)
 	fmt.Println("GO END")
-	return C.CString(doneStr)
+	response, _ := json.Marshal(resArray)
+	return C.CString(string(response))
 }
 
 func main() {}
